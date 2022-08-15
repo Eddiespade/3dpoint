@@ -27,22 +27,21 @@ def read_params(param_path):
 
 
 # ================================ 根据平面假设获取地面深度 ========================
-def get_depth(seg_path, cam_params, depth_path):
-    """根据相机高度h获得深度： z = h / (y - cy)    加速版
+def get_depth(seg_img, cam_params):
+    """根据相机高度h获得深度： z = h / (y - cy)
         1920*1080 耗时 0.045ms
     """
-    seg_img = cv2.imread(seg_path)
-    seg_img = cv2.cvtColor(seg_img, cv2.COLOR_BGR2RGB)
 
-    f = (cam_params["K"][0][0] + cam_params["K"][1][1]) / 2
+    K = np.asarray(cam_params["K"]).reshape(3, -1)
+    f = (K[0][0] + K[1][1]) / 2
     c_h = cam_params["H"]
-    c_y = cam_params["K"][1][2]
+    c_y = K[1][2]
 
     h, w, _ = seg_img.shape
     grid = np.meshgrid(range(w), range(h), indexing='xy')
     id_coord = np.stack(grid, axis=0).astype(np.float32)
     depth_img = c_h * f / (id_coord[1] - c_y)
-    cv2.imwrite(depth_path, depth_img)
+    return depth_img
 
 
 # ================================ 根据 分割图和深度图 获取3D点云 ========================
@@ -74,15 +73,15 @@ def pix2world(depth_img, seg_img, cam_params, opt, idx):
     world_point = inv_R @ (cam_points - T[:, np.newaxis])
 
     # ------- 根据分割图，获取图像颜色 -------
-    seg_img = seg_img.reshape(3, -1)
+    seg_img = seg_img.transpose(2, 0, 1).reshape(3, -1)
     world_point = np.stack([world_point[0], world_point[1], world_point[2],
-                            seg_img[0], seg_img[1], seg_img[2]], axis=0)
+                            seg_img[2], seg_img[1], seg_img[0]], axis=0)
 
     # ------- 存储每个三维点，并过滤背景 --------
     float_format = lambda x: "%.4f" % x
     for p in world_point.T:
-        # if p[3] == 0 and p[4] == 0 and p[5] == 0:
-        #     continue
+        if p[3] == 0 and p[4] == 0 and p[5] == 0:
+            continue
         # 设置 3D point 的属性值
         points.append("{} {} {} {} {} {} 0\n".format
                       (float_format(p[0]), float_format(p[1]), float_format(p[2]),

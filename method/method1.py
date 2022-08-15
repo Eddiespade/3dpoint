@@ -58,8 +58,8 @@ class point_cloud_generator():
         points = []
         for i in self.df.T:
             # 设置 3D point 的属性值
-            if i[3] == 0 and i[4] == 0 and i[5] == 0:
-                continue
+            # if i[3] == 0 and i[4] == 0 and i[5] == 0:
+            #     continue
             points.append("{} {} {} {} {} {} 0\n".format
                           (float_formatter(i[0]), float_formatter(i[1]), float_formatter(i[2]),
                            int(i[3]), int(i[4]), int(i[5])))
@@ -88,7 +88,7 @@ class point_cloud_generator():
         o3d.visualization.draw_geometries([pcd])
 
 
-a = point_cloud_generator('../499b_mask.png', '../499b.png', '499b.ply',
+a = point_cloud_generator('../cur_rgb.png', '../cur_depth.png', 'cur.ply',
                           f=1, scalingfactor=1)
 a.calculate()
 a.write_ply()

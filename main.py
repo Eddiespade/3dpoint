@@ -29,8 +29,6 @@ if __name__ == '__main__':
     depth_model, input_w, input_h = init_depth_net(opt.depth_encoder_path, opt.depth_decoder_path, opt.device)
 
     capture = cv2.VideoCapture(opt.video_path)
-    a = "W:" + str(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) + "  H:" + str(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) + \
-        "  FPS:" + str(capture.get(cv2.CAP_PROP_FPS)) + "  TOTAL:" + str(capture.get(cv2.CAP_PROP_FRAME_COUNT))
     i = 0
     while True:
         # ------- 依次读取每帧图片并处理 -------
@@ -39,20 +37,17 @@ if __name__ == '__main__':
             break
         img = Image.fromarray(frame.astype(np.uint8))
         # -------- 获取分割图与深度图 ----------
-        seg_img = generate_seg(seg_model, img, opt.device)
+        # seg_img = generate_seg(seg_model, img, opt.device)      # 采用深度学习算法分割路面
+        seg_img = seg_lane_by_cv(frame)                         # 采用opencv算法分割路面
         depth_img, disp_img = generate_depth(depth_model, input_h, input_w, img, opt.device)
+        # depth_img = get_depth(seg_img, params)
         # --- 存储分割图和深度图，便于可视化对比 ----
-        # cv2.imwrite("./output/depth/{}.png".format(i), depth_img)
-        # cv2.imwrite("./output/segment/{}.png".format(i), seg_img.transpose((1, 2, 0)))
-        # cv2.imwrite("1_rgb.png", frame)
-        # cv2.imwrite("1_depth.png", depth_img)
+        cv2.imwrite("./output/{}_rgb.png".format(i), frame)
+        cv2.imwrite("./output/{}_depth.png".format(i), depth_img)
+        cv2.imwrite("./output/{}_seg.png".format(i), seg_img)
 
         # ------ 根据深度图和分割图可视化点云 -------
-        # seg_img = frame.astype(np.float64).transpose(1, 2, 0)
+        seg_img = frame
         pix2world(depth_img, seg_img, params, opt, i)
         i += 1
 
-        # cv2.putText(frame, a, (50, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (100, 200, 200), 2)
-        # print(frame.shape)
-        # cv2.imshow('frame', frame)
-        # cv2.waitKey(10)

@@ -1,4 +1,6 @@
+import copy
 import os
+import cv2
 import numpy as np
 from PIL import Image
 from monodepth2 import networks
@@ -108,3 +110,18 @@ def disp_to_depth(disp, min_depth, max_depth):
     scaled_disp = min_disp + (max_disp - min_disp) * disp
     depth = 1 / scaled_disp
     return scaled_disp, depth
+
+
+def seg_lane_by_cv(image):
+    img = copy.copy(image)
+    rowNum, colNum = img.shape[:2]
+
+    for x in range(rowNum):
+        for y in range(colNum):
+            cur = img[x, y].tolist()
+            if (cur[0] < 115 or cur[0] > 150) or (cur[1] < 130 or cur[1] > 160) or \
+                    (cur[2] < 140 or cur[2] > 170) or (rowNum / 1.8 > x) or \
+                    (y < colNum / 3) or (y > colNum / 1.5):
+                img[x, y] = np.array([0, 0, 0])
+    return img
+
